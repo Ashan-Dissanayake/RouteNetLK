@@ -1,0 +1,130 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # Database: MySQL 8.0 (Low-Memory Config)
+  # ==========================================
+  database:
+    image: mysql:8.0-oracle
+    container_name: routenet_mysql
+    restart: unless-stopped
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --innodb-buffer-pool-size=128M
+      --innodb-log-buffer-size=8M
+      --max-connections=30
+      --performance-schema=OFF
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    # INTERNAL EXPOSURE ONLY (Not mapped to host ports)
+    expose:
+      - "3306"
+    networks:
+      - routenet_internal
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.60'
+          memory: 320M
+        reservations:
+          cpus: '0.20'
+          memory: 180M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==========================================
+  # Backend: Spring Boot Application
+  # ==========================================
+  backend:
+    image: ${DOCKERHUB_USERNAME:-routenetlk}/routenet-backend:latest
+    build:
+      context: ./RouteNetLKServerApllication
+      dockerfile: Dockerfile
+    container_name: routenet_backend
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://database:3306/${MYSQL_DATABASE}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      JWT_SECRET: ${JWT_SECRET}
+    expose:
+      - "8080"
+    networks:
+      - routenet_internal
+      - routenet_public
+    depends_on:
+      database:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.80'
+          memory: 380M
+        reservations:
+          cpus: '0.25'
+          memory: 200M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ==========================================
+  # Frontend: Angular (Served via Nginx)
+  # ==========================================
+  frontend:
+    image: ${DOCKERHUB_USERNAME:-routenetlk}/routenet-frontend:latest
+    build:
+      context: ./RouteNetLKClientApplication
+      dockerfile: Dockerfile
+    container_name: routenet_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      # - "443:443" # Uncomment if SSL certificate is mounted
+    networks:
+      - routenet_public
+      - routenet_internal
+    depends_on:
+      - backend
+    deploy:
+      resources:
+        limits:
+          cpus: '0.30'
+          memory: 64M
+        reservations:
+          cpus: '0.05'
+          memory: 24M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+# Persistent Storage
+volumes:
+  mysql_data:
+    driver: local
+
+# Network Segmentation
+networks:
+  routenet_public:
+    driver: bridge
+  routenet_internal:
+    internal: true
+    driver: bridge

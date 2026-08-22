@@ -1,0 +1,6 @@
+[submodule "RouteNetLKClientApplication"]
+	path = RouteNetLKClientApplication
+	url = ./RouteNetLKClientApplication
+[submodule "RouteNetLKServerApllication"]
+	path = RouteNetLKServerApllication
+	url = ./RouteNetLKServerApllication

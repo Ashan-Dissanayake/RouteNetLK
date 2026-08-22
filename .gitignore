@@ -1,0 +1,23 @@
+# Credentials & Environment Variables
+.env
+.env.local
+*.pem
+*.key
+
+# Infrastructure & Secrets (Terraform & AWS)
+routnetlk-infrastructure/*.pem
+routnetlk-infrastructure/*.key
+routnetlk-infrastructure/terraform.tfstate
+routnetlk-infrastructure/terraform.tfstate.backup
+
+# OS & IDE specific files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Build & Dependency folders
+node_modules/
+dist/
+build/
+target/
