@@ -4,11 +4,13 @@
 *.pem
 *.key
 
-# Infrastructure & Secrets (Terraform & AWS)
+# Infrastructure & Secrets (routnetlk-infrastructure)
 routnetlk-infrastructure/*.pem
 routnetlk-infrastructure/*.key
 routnetlk-infrastructure/terraform.tfstate
 routnetlk-infrastructure/terraform.tfstate.backup
+routnetlk-infrastructure/.terraform/
+routnetlk-infrastructure/.terraform.lock.hcl
 
 # OS & IDE specific files
 .DS_Store
