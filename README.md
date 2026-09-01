@@ -31,25 +31,9 @@ Rather than functioning as a standard CRUD application, RouteNetLK models operat
 
 Public transport depot operations require orchestrating interdependent human, mechanical, regulatory, and financial resources. An operational event in one domain immediately impacts multiple downstream systems:
 
-```text
-[ Route & Permit Setup ]
-          │
-          ▼
-[ Timetable Scheduling ] ───► [ Constraint-Based Crew Rostering (Timefold) ]
-          │                                         │
-          ▼                                         ▼
-[ Vehicle Allocation ] ◄────────────────── [ Crew Assignment ]
-          │
-          ▼
-[ Multi-Step Validation Pipeline (Strategy Pattern) ]
-          │
-          ▼
-[ Trip Dispatch & Execution ] ───► [ Real-Time Incident / Breakdown Recovery ]
-          │                                         │
-          ├─────────────────────────────────────────┼──────────────────────────┐
-          ▼                                         ▼                          ▼
-[ Fare Collection & ETM ]            [ Garage Maintenance & GRN ]     [ Operational Analytics ]
-```
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/d44ad73f-ab9b-47a3-9836-6c2c52174cb6" alt="opdomain" width="700px" />
+</p>
 
 ### Key Operational Challenges Solved:
 1. **Resource Combinatorics**: Automating crew shift scheduling and daily bus dispatch under complex operational constraints (medical clearance, license categories, route familiarity, rest periods).
@@ -63,44 +47,9 @@ Public transport depot operations require orchestrating interdependent human, me
 
 RouteNetLK is structured as a decoupled, multi-tier distributed application:
 
-```text
-                                  ┌─────────────────────────────┐
-                                  │      Client Web Browser     │
-                                  └──────────────┬──────────────┘
-                                                 │
-                                                 │ HTTPS / Port 80
-                                                 ▼
-┌─────────────────────────────────────────────────────────────────────────────────────────────┐
-│ AWS EC2 (Ubuntu Linux)                                                                       │
-│                                                                                             │
-│  ┌───────────────────────────────────────────────────────────────────────────────────────┐  │
-│  │ Docker Bridge Network (routenet-network)                                              │  │
-│  │                                                                                       │  │
-│  │   ┌─────────────────────────────┐                                                     │  │
-│  │   │  Frontend Container         │                                                     │  │
-│  │   │  Angular 19 + Nginx Proxy   │                                                     │  │
-│  │   └──────────────┬──────────────┘                                                     │  │
-│  │                  │                                                                    │  │
-│  │                  │ ProxyPass (/api/*) [Internal HTTP]                                 │  │
-│  │                  ▼                                                                    │  │
-│  │   ┌─────────────────────────────┐       ┌──────────────────────────────────────────┐  │  │
-│  │   │  Backend REST API           │◄─────►│ Timefold Solver Engine                   │  │  │
-│  │   │  Spring Boot 3 (Java 17)    │       │ (NP-Hard Roster & Dispatch Optimization) │  │  │
-│  │   └──────────────┬──────────────┘       └──────────────────────────────────────────┘  │  │
-│  │                  │                                                                    │  │
-│  │                  │ JDBC / JPA / Hibernate [Port 3306 - Internal Only]                 │  │
-│  │                  ▼                                                                    │  │
-│  │   ┌─────────────────────────────┐                                                     │  │
-│  │   │  Relational Database        │                                                     │  │
-│  │   │  MySQL 8.0 (InnoDB)         │                                                     │  │
-│  │   └──────────────┬──────────────┘                                                     │  │
-│  └──────────────────┼────────────────────────────────────────────────────────────────────┘  │
-│                     │                                                                       │
-│                     ▼ Host Mounted Volume                                                   │
-│      [ Persistent MySQL Storage (mysql-data) ]                                              │
-└─────────────────────────────────────────────────────────────────────────────────────────────┘
-```
-
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/30fcf4c4-9c01-4943-b66f-4b41e227de26" alt="System Architecture" width="100%" style="max-width: 900px;" />
+</p>
 ---
 
 ## 📦 Repository Structure & Subsystems
@@ -179,29 +128,9 @@ Forms, tables, lookup resolutions, and regex validation patterns are driven dyna
 
 RouteNetLK implements a **Stateless, Defense-in-Depth Security Model**:
 
-```text
-[ Client Request ]
-       │
-       ▼
-[ Angular Security Layer ]
-  ├── AuthGuard (Session & Token Expiry Check)
-  ├── Parameterized PermissionGuard (Granular PBAC Check)
-  └── AuthInterceptor (JWT Bearer Token Injection)
-       │
-       ▼ [ HTTPS / REST API ]
-[ Spring Security Filter Chain ]
-  ├── RateLimitingFilter (Brute-Force Attack Prevention)
-  ├── JwtAuthenticationFilter (Token Parsing, Signature & Expiry Validation)
-  └── CustomUserPrincipal Loading (Branch Context & Granted Authorities)
-       │
-       ▼
-[ Controller & Service Layer Authorization ]
-  └── @PreAuthorize("hasAuthority('...')") Method-Level Privilege Verification
-       │
-       ▼
-[ Hibernate AOP Filter ]
-  └── Transparent Multi-Tenant Branch Data Scoping
-```
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/2ee587c0-4e98-4caf-b126-bf7cb0dc91fe" alt="secarchitecture" width="40%" />
+</p>
 
 - **Authentication**: Stateless JSON Web Tokens (JWT) with HMAC-SHA256 signatures.
 - **Authorization**: Dual-layer **Role-Based (RBAC)** and fine-grained **Privilege-Based Access Control (PBAC)** across UI routes, buttons, and API endpoints.
@@ -241,22 +170,9 @@ All cloud resources are provisioned declaratively via Terraform:
 
 Independent **GitHub Actions** workflows automate testing, image building, and production deployment on every push:
 
-```text
-[ Git Push to main ]
-        │
-        ├── Frontend Repository ──► Run Linters ──► Docker Buildx ──► Push to Docker Hub
-        └── Backend Repository  ──► Run Tests   ──► Docker Buildx ──► Push to Docker Hub
-                                                                            │
-                                                                            ▼
-                                                              [ SSH to AWS EC2 Host ]
-                                                                            │
-                                                                            ├── docker compose pull <service>
-                                                                            ├── docker compose up -d --no-deps <service>
-                                                                            └── docker image prune -f
-                                                                            │
-                                                                            ▼
-                                                              [ Zero-Downtime Service Update ]
-```
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/18c76758-f5d4-4ae2-b533-eaf6f0b5e921" alt="cicd" width="40%" />
+</p>
 
 ---
 
