@@ -129,7 +129,7 @@ Forms, tables, lookup resolutions, and regex validation patterns are driven dyna
 RouteNetLK implements a **Stateless, Defense-in-Depth Security Model**:
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/2ee587c0-4e98-4caf-b126-bf7cb0dc91fe" alt="secarchitecture" width="40%" />
+  <img src="https://github.com/user-attachments/assets/2ee587c0-4e98-4caf-b126-bf7cb0dc91fe" alt="secarchitecture" width="25%" />
 </p>
 
 - **Authentication**: Stateless JSON Web Tokens (JWT) with HMAC-SHA256 signatures.
