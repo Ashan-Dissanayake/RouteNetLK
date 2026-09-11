@@ -8,6 +8,9 @@ The platform models complex real-world operational workflows spanning fleet mana
 
 Rather than functioning as a standard CRUD application, RouteNetLK models operational workflows as interconnected stateful domains and enforces strict business invariants, constraint satisfaction optimization, multi-tenant branch data isolation, and robust end-to-end security.
 
+ **Project Repositories**:
+  - [RouteNetLK Client Application (Angular 19)](https://github.com/Ashan-Dissanayake/RouteNetLKClientApplication)
+  - [RouteNetLK Server Application (Spring Boot 3)](https://github.com/Ashan-Dissanayake/RouteNetLKServerApplication)
 ---
 
 ## 📑 Table of Contents
@@ -246,6 +249,3 @@ The project demonstrates production-grade full-stack software engineering princi
 
 - **GitHub**: [@Ashan-Dissanayake](https://github.com/Ashan-Dissanayake)
 - **LinkedIn**: [Ashan Dissanayake](https://www.linkedin.com/in/ashan-pdissanayake)
-- **Project Repositories**:
-  - [RouteNetLK Client Application (Angular 19)](https://github.com/Ashan-Dissanayake/RouteNetLKClientApplication)
-  - [RouteNetLK Server Application (Spring Boot 3)](https://github.com/Ashan-Dissanayake/RouteNetLKServerApplication)
