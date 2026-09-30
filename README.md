@@ -2,11 +2,11 @@
 
 ## Enterprise Public Transport Operations & Fleet Management System
 
-> **RouteNetLK** is a full-stack, distributed enterprise platform engineered to digitize, streamline, and optimize depot-level public transport operations for large-scale transit networks (e.g., Sri Lanka Transport Board - SLTB). 
+> **RouteNetLK** is a full-stack, distributed enterprise platform designed to digitize, streamline, and optimize depot-level public transport operations for large-scale transit networks such as the Sri Lanka Transport Board (SLTB).
 
-The platform models complex real-world operational workflows spanning fleet management, crew rostering, timetable scheduling, vehicle dispatching, incident recovery, spare part inventory, preventive maintenance, fare reconciliation, and analytical reporting.
+The platform models complex operational workflows across fleet management, crew management, timetable scheduling, vehicle dispatching, incident recovery, spare-part inventory, preventive maintenance, fare reconciliation, security, and operational analytics.
 
-Rather than functioning as a standard CRUD application, RouteNetLK models operational workflows as interconnected stateful domains and enforces strict business invariants, constraint satisfaction optimization, multi-tenant branch data isolation, and robust end-to-end security.
+Rather than functioning as a conventional CRUD application, RouteNetLK models real-world operational processes as interconnected stateful domains with strict business rules, constraint-based optimization, role and privilege-based access control, branch-level data isolation, and end-to-end security.
 
  **Project Repositories**:
   - [RouteNetLK Client Application (Angular 19)](https://github.com/Ashan-Dissanayake/RouteNetLKClientApplication)
@@ -15,237 +15,612 @@ Rather than functioning as a standard CRUD application, RouteNetLK models operat
 
 ## 📑 Table of Contents
 
-- [Core Problem & Operational Domain](#-core-problem--operational-domain)
-- [System Architecture](#-system-architecture)
-- [Repository Structure & Subsystems](#-repository-structure--subsystems)
-- [Functional Domains & Workflows](#-functional-domains--workflows)
-- [Core Engineering Highlights & Patterns](#-core-engineering-highlights--patterns)
-- [Security Architecture](#-security-architecture)
-- [Testing Strategy](#-testing-strategy)
-- [Containerization & Cloud Deployment](#-containerization--cloud-deployment)
-- [CI/CD Automation Pipeline](#-cicd-automation-pipeline)
-- [Technology Stack Matrix](#-technology-stack-matrix)
-- [Local Quickstart & Orchestration](#-local-quickstart--orchestration)
-- [Academic Context & Author](#-academic-context--author)
+* [System Overview](#-system-overview)
+* [Core Problem Domain](#-core-problem-domain)
+* [System Architecture](#-system-architecture)
+* [Repository Architecture](#-repository-architecture)
+* [Functional Domains](#-functional-domains)
+* [Key Engineering Capabilities](#-key-engineering-capabilities)
+* [Security Overview](#-security-overview)
+* [Infrastructure & Deployment](#-infrastructure--deployment)
+* [CI/CD](#-cicd)
+* [Technology Stack](#-technology-stack)
+* [Getting Started](#-getting-started)
+* [Documentation](#-documentation)
+* [Academic Context](#-academic-context)
+* [Author](#-author)
 
 ---
 
-## 🎯 Core Problem & Operational Domain
+# 🏗️ System Overview
 
-Public transport depot operations require orchestrating interdependent human, mechanical, regulatory, and financial resources. An operational event in one domain immediately impacts multiple downstream systems:
-
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/d44ad73f-ab9b-47a3-9836-6c2c52174cb6" alt="opdomain" width="700px" />
-</p>
-
-### Key Operational Challenges Solved:
-1. **Resource Combinatorics**: Automating crew shift scheduling and daily bus dispatch under complex operational constraints (medical clearance, license categories, route familiarity, rest periods).
-2. **Breakdown & Incident Recovery**: Seamlessly managing route accidents or mechanical failures with rapid emergency replacement vehicle allocation.
-3. **Inventory & Maintenance Integrity**: Linking spare part requisitions, Goods Received Notes (GRN), and technician job cards directly to vehicle service histories.
-4. **Revenue Transparency**: Reconciling Electronic Ticket Machine (ETM) digital revenue logs and physical cash collections per trip.
-
----
-
-## 🏗️ System Architecture
-
-RouteNetLK is structured as a decoupled, multi-tier distributed application:
-
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/30fcf4c4-9c01-4943-b66f-4b41e227de26" alt="System Architecture" width="100%" style="max-width: 900px;" />
-</p>
----
-
-## 📦 Repository Structure & Subsystems
-
-RouteNetLK is organized into modular repositories, each with dedicated architectural and technical documentation:
-
-| Subsystem / Repository | Primary Stack | Core Responsibility |
-| :--- | :--- | :--- |
-| [**RouteNetLK Client Application**](https://github.com/Ashan-Dissanayake/RouteNetLKClientApplication) | Angular 19, TypeScript, Angular Material, Signals, Chart.js | 18 feature modules, reactive state facades, dynamic metadata form builder, role/permission guards, SSE live toasts, PDF/Excel document export. |
-| [**RouteNetLK Server Application**](https://github.com/Ashan-Dissanayake/RouteNetLKServerApplication) | Spring Boot 3, Java 17, Spring Data JPA, Spring Security, Timefold | RESTful APIs, domain validation pipelines (Strategy), state machines (State), Timefold optimization, AOP branch scoping, soft delete, SSE, Thymeleaf mail. |
-| **Root Infrastructure** | Docker, Docker Compose, Terraform, GitHub Actions | Multi-container orchestration, AWS VPC/EC2 provisioning (IaC), environment configuration, automated CI/CD deployment pipelines. |
-
----
-
-## 🧩 Functional Domains & Workflows
-
-The platform encompasses **18 interconnected business modules**:
+RouteNetLK is designed as a **decoupled multi-repository application** consisting of three primary parts:
 
 ```text
-RouteNetLK Functional Matrix
+                         RouteNetLK
+                             │
+          ┌──────────────────┼──────────────────┐
+          │                  │                  │
+          ▼                  ▼                  ▼
+      Frontend            Backend         Infrastructure
+          │                  │                  │
+       Angular          Spring Boot       Terraform
+          │                  │             Docker
+          │                  │          GitHub Actions
+          └────────── REST / SSE ──────────┘
+                             │
+                             ▼
+                           MySQL
+```
+
+The application separates:
+
+* **Presentation** — Angular client application
+* **Business Logic & APIs** — Spring Boot server application
+* **Infrastructure & Operations** — Docker, Terraform, AWS and CI/CD
+* **Persistence** — MySQL database and database initialization/schema resources
+
+This separation allows each subsystem to be independently developed, tested, versioned, and deployed.
+
+---
+
+# 🎯 Core Problem Domain
+
+Public transport depot operations involve multiple interconnected resources:
+
+* Vehicles
+* Drivers
+* Conductors
+* Routes
+* Timetables
+* Trips
+* Maintenance teams
+* Spare parts
+* Suppliers
+* Revenue
+* Operational incidents
+
+A change in one operational area can directly affect other areas.
+
+For example:
+
+```text
+Vehicle Breakdown
+       │
+       ├──► Trip affected
+       │
+       ├──► Replacement vehicle required
+       │
+       ├──► Qualified crew required
+       │
+       ├──► Route permit compatibility checked
+       │
+       ├──► Maintenance job created
+       │
+       └──► Operational / financial records updated
+```
+
+RouteNetLK models these relationships as connected business workflows rather than isolated CRUD operations.
+
+### Key Operational Challenges
+
+1. **Resource Scheduling**
+
+   Crew and vehicle assignments must respect operational constraints such as qualifications, licenses, route familiarity, availability, and rest periods.
+
+2. **Incident Recovery**
+
+   Vehicle breakdowns and road incidents require rapid replacement vehicle allocation while maintaining operational constraints.
+
+3. **Maintenance & Inventory Integration**
+
+   Vehicle service operations are connected with job cards, spare-part requisitions, stock issuance, and goods-received processes.
+
+4. **Revenue Reconciliation**
+
+   Electronic ticket machine records and physical cash collection data are reconciled at the operational level.
+
+5. **Multi-Branch Data Isolation**
+
+   Operational data is scoped to the relevant depot/branch while maintaining centralized system management.
+
+---
+
+# 🏛️ System Architecture
+
+RouteNetLK follows a decoupled multi-tier architecture.
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/30fcf4c4-9c01-4943-b66f-4b41e227de26" alt="RouteNetLK System Architecture" width="100%" style="max-width: 1000px;" />
+</p>
+
+### Architectural Responsibilities
+
+| Layer                  | Responsibility                                                               |
+| ---------------------- | ---------------------------------------------------------------------------- |
+| **Angular Client**     | User interface, navigation, forms, dashboards, reports and client-side state |
+| **Spring Boot Server** | REST APIs, business rules, security, workflow processing and optimization    |
+| **MySQL**              | Persistent relational data storage                                           |
+| **Docker**             | Application containerization and local/service orchestration                 |
+| **AWS**                | Cloud hosting and infrastructure                                             |
+| **Terraform**          | Infrastructure provisioning as Code                                          |
+| **GitHub Actions**     | Automated CI/CD pipelines                                                    |
+
+---
+
+# 📦 Repository Architecture
+
+RouteNetLK is maintained using **separate repositories for application and infrastructure concerns**.
+
+| Repository                                                                                            | Responsibility                                                                 | Primary Technology                |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | --------------------------------- |
+| [**RouteNetLK Client Application**](https://github.com/Ashan-Dissanayake/RouteNetLKClientApplication) | Frontend application and user interface                                        | Angular 19, TypeScript            |
+| [**RouteNetLK Server Application**](https://github.com/Ashan-Dissanayake/RouteNetLKServerApplication) | Backend APIs and business logic                                                | Spring Boot 3, Java 17            |
+| **RouteNetLK Infrastructure**                                                                         | Cloud infrastructure, database resources, containers and deployment automation | Terraform, Docker, GitHub Actions |
+
+### Repository Relationship
+
+```text
+RouteNetLK
+│
+├── Client Repository
+│   └── Angular Frontend
+│
+├── Server Repository
+│   └── Spring Boot Backend
+│
+└── Infrastructure Repository
+    ├── Terraform
+    ├── Docker / Compose
+    ├── Database Schema
+    ├── SQL Scripts
+    └── CI/CD Configuration
+```
+
+Each repository contains its own detailed technical documentation.
+
+### Detailed Documentation
+
+* **Client Application** — frontend architecture, modules, UI components, state management, API integration and frontend development.
+* **Server Application** — backend architecture, domain logic, APIs, persistence, security, testing and backend development.
+* **Infrastructure** — AWS architecture, Terraform, Docker, database setup, environment configuration and deployment automation.
+
+---
+
+# 🧩 Functional Domains
+
+RouteNetLK contains **18 interconnected business modules** grouped into the following operational areas.
+
+```text
+RouteNetLK Functional Domains
+│
 ├── Operations & Fleet
-│   ├── Fleet Management       ── Vehicle registration, condition rating, compliance, fitness certificates
-│   ├── Route & Permits        ── Route definitions, authorized stops, route permit quotas, transfers
-│   ├── Trip Scheduling        ── Timetable master schedules, operational calendars, frequency rules
-│   └── Trip Execution         ── Daily dispatching, conductor/driver sign-in, live status tracking
+│   ├── Fleet Management
+│   ├── Route & Permits
+│   ├── Trip Scheduling
+│   └── Trip Execution
 │
 ├── Crew & Workforce
-│   ├── Employee Management    ── Personnel records, designations, departments, NIC/demographic validation
-│   ├── Crew Registry          ── Heavy-vehicle driving licenses, conductor badges, medical clearances
-│   └── Crew Rostering         ── Timefold constraint optimization for fair and compliant shift assignment
+│   ├── Employee Management
+│   ├── Crew Registry
+│   └── Crew Rostering
 │
 ├── Incident & Maintenance
-│   ├── Incident Reporting     ── Road accidents, en-route breakdowns, delay tracking, severity logs
-│   ├── Emergency Allocation   ── Rapid replacement bus dispatching with route permit & capacity matching
-│   └── Vehicle Service        ── Workshop job cards, preventive maintenance schedules, service histories
+│   ├── Incident Reporting
+│   ├── Emergency Allocation
+│   └── Vehicle Service
 │
 ├── Inventory & Finance
-│   ├── Spare Parts Catalog    ── Stock levels, unit costs, bin locations, automated reorder thresholds
-│   ├── Part Requisitions      ── Workshop material requests, engineering approvals, stock issuance
-│   ├── Goods Received (GRN)   ── Supplier intake verification, purchase order matching, stock batching
-│   └── Fare Collection        ── Daily ETM ticket revenue reconciliation, cash logs, payment breakdown
+│   ├── Spare Parts Catalog
+│   ├── Part Requisitions
+│   ├── Goods Received (GRN)
+│   └── Fare Collection
 │
 └── Governance & Analytics
-    ├── Security & Access      ── User accounts, multi-tenant branch assignment, RBAC/PBAC matrix
-    ├── Live Dashboard         ── Real-time KPIs, active breakdown alerts, shift coverage counters
-    └── Operational Reports    ── Multi-dimensional analytics, fleet utilization trends, financial summaries
+    ├── Security & Access
+    ├── Live Dashboard
+    └── Operational Reports
+```
+
+### Major Workflow Examples
+
+**Crew Rostering**
+
+```text
+Employees
+    ↓
+Qualifications / Availability
+    ↓
+Operational Constraints
+    ↓
+Timefold Solver
+    ↓
+Optimized Roster
+```
+
+**Vehicle Breakdown**
+
+```text
+Incident
+   ↓
+Vehicle Unavailable
+   ↓
+Replacement Vehicle Search
+   ↓
+Route / Capacity / Permit Validation
+   ↓
+Replacement Dispatch
+   ↓
+Maintenance Workflow
+```
+
+**Maintenance & Inventory**
+
+```text
+Maintenance Job
+      ↓
+Part Requirement
+      ↓
+Part Requisition
+      ↓
+Approval
+      ↓
+Stock Issuance
+      ↓
+Vehicle Service
+      ↓
+Service History
+```
+
+**Fare Reconciliation**
+
+```text
+Trip
+ ↓
+ETM Revenue
+ ↓
+Cash Collection
+ ↓
+Payment Breakdown
+ ↓
+Reconciliation
+ ↓
+Financial Reporting
 ```
 
 ---
 
-## 🧠 Core Engineering Highlights & Patterns
+# 🧠 Key Engineering Capabilities
 
-### 1. Constraint-Based Optimization (Timefold Solver)
-Instead of relying on naive manual scheduling, RouteNetLK leverages **Timefold Solver** to address NP-hard combinatorial planning problems:
-- **Crew Shift Rostering**: Generates optimal weekly/monthly rosters respecting mandatory rest intervals, driver route familiarity, valid medical certificates, and balanced workload distribution.
-- **Trip Execution Dispatch**: Matches available vehicles and qualified crews to scheduled trips, minimizing idle vehicle time and eliminating conflicting assignments.
+RouteNetLK focuses on applying practical software engineering principles to a complex operational domain.
 
-### 2. Decoupled Business Validation (Strategy Pattern)
-Validation logic is isolated into discrete, reusable strategy beans registered in a validation pipeline. This eliminates monolithic `if-else` blocks and allows business rules (e.g., license expiration, route permit compatibility, vehicle capacity bounds) to be executed consistently across modules.
+### Constraint-Based Optimization
 
-### 3. Explicit Lifecycle Management (State Pattern)
-Critical domain entities (Trips, Part Requests, Incident Recoveries, Maintenance Records) progress through strict deterministic state transitions managed by dedicated state transition handlers, preventing illegal lifecycle mutations.
+Timefold Solver is used for operational planning problems such as crew rostering and resource assignment while considering domain constraints including qualifications, availability, rest periods, and workload distribution.
 
-### 4. Multi-Tenant Branch Scoping & Soft Deletion (Spring AOP + Hibernate Filters)
-Depot branch data isolation and soft-delete filtering (`deleted = false`) are handled transparently at the persistence layer using Spring AOP and Hibernate `@Filter` definitions, ensuring data confidentiality across depots without repetitive query filtering.
+### Domain-Oriented Business Logic
 
-### 5. Reactive Facade Architecture (Angular Frontend)
-Components in the Angular client do not interact directly with raw HTTP services or complex RxJS streams. Instead, each feature utilizes a **Facade Service** that encapsulates reactive signals, loading states, lookup caches, and error contexts.
+Business rules are organized around the operational domains of the system rather than treating the application as a collection of generic CRUD operations.
 
-### 6. Dynamic Metadata-Driven UI Engine
-Forms, tables, lookup resolutions, and regex validation patterns are driven dynamically through structured metadata definitions, reducing UI boilerplate while maintaining unified validation rules.
+Examples include:
 
+- Fleet management
+- Crew management
+- Trip scheduling
+- Incident management
+- Maintenance
+- Inventory
+- Fare reconciliation
+
+### Multi-Branch Data Isolation
+
+Operational data is scoped to the relevant branch/depot, preventing users from unintentionally accessing data belonging to another operational branch.
+
+### Reactive Frontend Architecture
+
+The Angular client uses facade-oriented services to separate UI components from API communication, reactive state, loading states, lookup data, and error handling.
+
+### Metadata-Driven UI
+
+Reusable metadata definitions are used to support dynamic forms, tables, lookup fields, and validation behavior across the client application.
 ---
 
-## 🔐 Security Architecture
+# 🔐 Security Overview
 
-RouteNetLK implements a **Stateless, Defense-in-Depth Security Model**:
+RouteNetLK follows a **stateless, defense-in-depth security architecture**.
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/2ee587c0-4e98-4caf-b126-bf7cb0dc91fe" alt="secarchitecture" width="25%" />
+  <img src="https://github.com/user-attachments/assets/2ee587c0-4e98-4caf-b126-bf7cb0dc91fe" alt="RouteNetLK Security Architecture" width="250px" />
 </p>
 
-- **Authentication**: Stateless JSON Web Tokens (JWT) with HMAC-SHA256 signatures.
-- **Authorization**: Dual-layer **Role-Based (RBAC)** and fine-grained **Privilege-Based Access Control (PBAC)** across UI routes, buttons, and API endpoints.
-- **Protection**: BCrypt password hashing (cost factor 12) and automated account/IP lockout after consecutive failed authentication attempts.
+### Authentication
 
+* Stateless JWT authentication
+* HMAC-SHA256 token signatures
+* BCrypt password hashing
+* Account/IP lockout mechanisms
 
-## 🧪 Testing Strategy
+### Authorization
 
-RouteNetLK employs a comprehensive multi-tier testing strategy to ensure backend software correctness, transactional integrity, and operational reliability:
+The system combines:
 
-| Testing Level | Frameworks & Tools | Scope & Focus |
-| --- | --- | --- |
-| **Unit Testing** | JUnit 5 + Mockito | Isolated business logic, strategy pattern implementations, and state transitions |
-| **Integration Testing** | Spring Boot Test + Testcontainers *(MySQL 8 Docker)* | Transactional integrity, AOP branch filters, Flyway schema migrations, and JPQL queries |
-| **Security Testing** | Spring Security Test | Authentication contexts, filter chain execution, and method-level authorization rules |
-| **End-to-End & API Verification** | Postman API Test Suites | Automated workflow collections verifying end-to-end HTTP APIs and state persistence |
----
-## 🐳 Containerization & Cloud Deployment
+* **Role-Based Access Control (RBAC)**
+* **Privilege-Based Access Control (PBAC)**
 
-The entire platform is containerized using multi-stage Docker builds and deployed to **AWS EC2** using **Terraform (Infrastructure as Code)**.
+Authorization is applied across relevant application and API operations.
 
-### Container Architecture
-- **Frontend Container**: Multi-stage build (Node 20 build stage $\rightarrow$ Alpine Nginx 1.25 runtime) serving static assets with gzip compression and reverse-proxying `/api/*` traffic to the backend container.
-- **Backend Container**: Multi-stage build (Maven $\rightarrow$ Eclipse Temurin 17 JRE slim image) with non-root execution and JVM container-aware memory limits (`-XX:MaxRAMPercentage=75.0`).
-- **Database Container**: Official MySQL 8.0 image with persistent volume mapping and health checks.
-- **Docker Network**: Private bridge network (`routenet-network`) where MySQL is accessible only to the backend.
+### Data Protection
 
-### Infrastructure as Code (Terraform)
-All cloud resources are provisioned declaratively via Terraform:
-- **Custom VPC & Subnet**: Dedicated VPC with Internet Gateway and route table.
-- **Security Groups**: Granular ingress rules (Port 80 HTTP, Port 22 SSH restricted to admin IP).
-- **EC2 Compute**: Ubuntu Server instance with automated Docker runtime provisioning.
+Branch-level data isolation and persistence filtering provide an additional security boundary for operational data.
+
+> Detailed security implementation is documented in the Server Application repository.
 
 ---
 
-## 🔄 CI/CD Automation Pipeline
+# ☁️ Infrastructure & Deployment
 
-Independent **GitHub Actions** workflows automate testing, image building, and production deployment on every push:
+RouteNetLK uses **Infrastructure as Code and containerized deployment**.
 
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/18c76758-f5d4-4ae2-b533-eaf6f0b5e921" alt="cicd" width="40%" />
-</p>
+```text
+                         AWS
+                          │
+                    ┌─────┴─────┐
+                    │    VPC    │
+                    └─────┬─────┘
+                          │
+                         EC2
+                          │
+                    Docker Engine
+                          │
+             ┌────────────┼────────────┐
+             │            │            │
+             ▼            ▼            ▼
+          Frontend     Backend      Database
+           Nginx      Spring Boot     MySQL
+```
 
----
+### Infrastructure Technologies
 
-## 📊 Technology Stack Matrix
+* AWS VPC
+* AWS EC2
+* Security Groups
+* Internet Gateway
+* Ubuntu Server
+* Docker
+* Docker Compose
+* Terraform
 
-| Dimension | Technology | Description / Usage |
-| :--- | :--- | :--- |
-| **Frontend Framework** | **Angular 19** | Standalone components, Signals, Reactive Forms, Lazy-loaded routes |
-| **UI Component Library**| **Angular Material** | Modern, accessible UI controls with custom theme tokens |
-| **Client-Side Export** | **jsPDF / SheetJS** | Client-side branded PDF reports (AutoTable) and Excel exports |
-| **Data Visualization** | **Chart.js** | Interactive operational and financial analytics charts |
-| **Backend Framework**  | **Spring Boot 3.x** | Java 17 enterprise framework, REST controllers, AOP |
-| **Optimization Engine**| **Timefold Solver** | Constraint satisfaction solver for NP-hard scheduling |
-| **Object Relational**  | **Spring Data JPA / Hibernate** | Relational mapping, custom projections, AOP branch filters |
-| **Database**           | **MySQL 8.0** | Relational storage, ACID transactions, foreign key constraints |
-| **Security**           | **Spring Security + JWT** | Stateless JWT authentication, RBAC, and granular PBAC |
-| **Real-Time Events**   | **Server-Sent Events (SSE)** | Unidirectional push notification streams from backend to client |
-| **Email Delivery**     | **JavaMail + Thymeleaf** | Automated HTML templated notifications |
-| **Unit Testing**       | **JUnit 5 / Mockito** | Comprehensive backend unit testing |
-| **Integration Testing**| **Testcontainers** | Isolated MySQL 8 Docker containers during build testing |
-| **Containerization**   | **Docker / Docker Compose** | Multi-stage container builds and micro-service orchestration |
-| **Reverse Proxy**      | **Nginx** | Reverse proxy, static asset web server, SSL termination ready |
-| **Cloud Hosting**      | **AWS EC2 (Ubuntu)** | Cloud compute infrastructure |
-| **Infrastructure as Code**| **Terraform** | Declarative AWS VPC, Security Group, and EC2 provisioning |
-| **CI/CD**              | **GitHub Actions** | Automated build, test, Docker Hub publish, and EC2 CD pipeline |
+Terraform is used to declaratively provision and manage cloud infrastructure.
 
----
+### Containerization
 
-## ⚡ Local Quickstart & Orchestration
+The application is containerized using Docker.
 
-### Prerequisites
-- [Docker](https://www.docker.com/) & [Docker Compose](https://docs.docker.com/compose/)
-- [Java 17 JDK](https://adoptium.net/) *(for local backend development)*
-- [Node.js 20+ & npm](https://nodejs.org/) *(for local frontend development)*
+The deployment architecture consists of:
 
-### Running with Docker Compose (Full Stack)
+* Angular/Nginx frontend container
+* Spring Boot backend container
+* MySQL database container
+* Private Docker network
 
-1. **Clone the project:**
-   ```bash
-   git clone https://github.com/Ashan-Dissanayake/RouteNetLK.git
-   cd RouteNetLK
-   ```
+The backend communicates with the database through the internal Docker network rather than exposing the database directly to the public network.
 
-2. **Configure environment variables:**
-   ```bash
-   cp .env.example .env
-   # Edit .env to set your database passwords and JWT secrets
-   ```
-
-3. **Start all services:**
-   ```bash
-   docker compose up -d --build
-   ```
-
-4. **Access the application:**
-   - **Frontend Web UI**: `http://localhost:80`
-   - **Backend REST API**: `http://localhost:8080/api`
-   - **API Documentation (Swagger UI)**: `http://localhost:8080/swagger-ui.html`
+> Detailed infrastructure configuration, Terraform modules, database scripts and deployment instructions are maintained in the Infrastructure repository.
 
 ---
 
-## 🎓 Academic Context & Author
+# 🔄 CI/CD
 
-**RouteNetLK** was developed as the final-year Capstone Software Engineering Project for the **Bachelor of Information Technology (BIT)** at the **University of Colombo School of Computing (UCSC)**.
+RouteNetLK uses **GitHub Actions** to automate the software delivery lifecycle.
 
-The project demonstrates production-grade full-stack software engineering principles, complex domain modeling, constraint satisfaction algorithms, resilient security practices, and modern DevOps/cloud deployment workflows.
+```text
+Developer
+    │
+    ▼
+Git Push
+    │
+    ▼
+GitHub Repository
+    │
+    ▼
+GitHub Actions
+    │
+    ├──► Build
+    │
+    ├──► Test
+    │
+    ├──► Build Docker Image
+    │
+    ├──► Publish Image
+    │
+    └──► Deploy
+             │
+             ▼
+           AWS EC2
+```
 
-### Developed by:
-**Ashan Dissanayake**  
+Separate workflows can be maintained for the frontend, backend and infrastructure depending on the deployment responsibility of each repository.
+
+The CI/CD implementation includes automated:
+
+* Build verification
+* Automated testing
+* Docker image creation
+* Container image publishing
+* Deployment to the cloud environment
+
+> Detailed pipeline configuration and deployment procedures are documented in the relevant repositories.
+
+---
+
+# 📊 Technology Stack
+
+| Category                    | Technology                  | Purpose                           |
+| --------------------------- | --------------------------- | --------------------------------- |
+| **Frontend**                | Angular 19                  | Web application                   |
+| **Frontend Language**       | TypeScript                  | Client-side development           |
+| **UI Framework**            | Angular Material            | UI components                     |
+| **State Management**        | Angular Signals / Facades   | Reactive client state             |
+| **Charts**                  | Chart.js                    | Operational analytics             |
+| **Reports**                 | jsPDF / SheetJS             | PDF and Excel exports             |
+| **Backend**                 | Spring Boot 3               | REST API and business logic       |
+| **Backend Language**        | Java 17                     | Server-side development           |
+| **Persistence**             | Spring Data JPA / Hibernate | ORM and database access           |
+| **Optimization**            | Timefold Solver             | Constraint-based planning         |
+| **Security**                | Spring Security / JWT       | Authentication and authorization  |
+| **Database**                | MySQL 8                     | Relational persistence            |
+| **Real-Time Communication** | Server-Sent Events          | Server-to-client live updates     |
+| **Email**                   | JavaMail / Thymeleaf        | Notification delivery             |
+| **Testing**                 | JUnit 5 / Mockito           | Unit testing                      |
+| **Integration Testing**     | Testcontainers              | Database integration testing      |
+| **Containerization**        | Docker / Docker Compose     | Application orchestration         |
+| **Reverse Proxy**           | Nginx                       | Web serving and reverse proxy     |
+| **Cloud**                   | AWS EC2                     | Application hosting               |
+| **IaC**                     | Terraform                   | Cloud infrastructure provisioning |
+| **CI/CD**                   | GitHub Actions              | Automated delivery                |
+
+---
+
+# 🚀 Getting Started
+
+RouteNetLK is composed of multiple repositories. Clone the repositories required for the development task rather than treating the root repository as a single monolithic application repository.
+
+### 1. Clone the repositories
+
+```bash
+git clone https://github.com/Ashan-Dissanayake/RouteNetLKClientApplication.git
+
+git clone https://github.com/Ashan-Dissanayake/RouteNetLKServerApplication.git
+
+```
+
+### 2. Start the Infrastructure / Local Environment
+
+Follow the instructions in the Infrastructure repository for:
+
+* Environment variables
+* Database initialization
+* Docker Compose
+* Local infrastructure
+* AWS configuration
+
+### 3. Start the Backend
+
+Follow the Server Application repository README for:
+
+* Java 17 setup
+* Dependency installation
+* Environment configuration
+* Database configuration
+* Application startup
+* API documentation
+
+### 4. Start the Frontend
+
+Follow the Client Application repository README for:
+
+* Node.js setup
+* Dependency installation
+* Environment configuration
+* Development server
+* API configuration
+
+---
+
+# 📚 Documentation
+
+Detailed documentation is intentionally distributed according to repository responsibility.
+
+### Frontend
+
+[**RouteNetLK Client Application**](https://github.com/Ashan-Dissanayake/RouteNetLKClientApplication)
+
+Contains:
+
+* Frontend architecture
+* Angular modules
+* Component architecture
+* Facade pattern
+* Signals
+* Forms
+* UI components
+* API integration
+* Frontend testing
+* Development setup
+
+### Backend
+
+[**RouteNetLK Server Application**](https://github.com/Ashan-Dissanayake/RouteNetLKServerApplication)
+
+Contains:
+
+* Backend architecture
+* Domain model
+* REST APIs
+* Business rules
+* Validation strategies
+* State transitions
+* Security
+* Persistence
+* Timefold optimization
+* Testing
+* Backend development setup
+
+### Infrastructure
+
+**RouteNetLK Infrastructure**
+
+Contains:
+
+* AWS architecture
+* Terraform
+* Docker
+* Docker Compose
+* Database schema
+* SQL scripts
+* Environment configuration
+* Deployment
+* CI/CD infrastructure
+
+---
+
+# 🎓 Academic Context
+
+RouteNetLK was developed as a final-year **Capstone Software Engineering Project** for the **Bachelor of Information Technology (BIT)** at the **University of Colombo School of Computing (UCSC)**.
+
+The project focuses on applying software engineering principles to a complex real-world operational domain, including:
+
+* Domain-driven system modeling
+* Enterprise application architecture
+* Constraint-based optimization
+* Secure API design
+* Multi-branch data isolation
+* Automated testing
+* Containerization
+* Infrastructure as Code
+* Cloud deployment
+* CI/CD automation
+
+---
+
+# 👨‍💻 Author
+
+**Ashan Dissanayake**
+
 *Full-Stack Software Engineer*
 
-- **GitHub**: [@Ashan-Dissanayake](https://github.com/Ashan-Dissanayake)
-- **LinkedIn**: [Ashan Dissanayake](https://www.linkedin.com/in/ashan-pdissanayake)
+* **GitHub:** [@Ashan-Dissanayake](https://github.com/Ashan-Dissanayake)
+* **LinkedIn:** [Ashan Dissanayake](https://www.linkedin.com/in/ashan-pdissanayake)
+
+### Project Repositories
+
+* [RouteNetLK Client Application](https://github.com/Ashan-Dissanayake/RouteNetLKClientApplication)
+* [RouteNetLK Server Application](https://github.com/Ashan-Dissanayake/RouteNetLKServerApplication)
+
+---
+
+## 📄 License
+
+This project was developed as an academic capstone software engineering project.
+
+Refer to the repository-specific license information for usage and distribution details.
