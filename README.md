@@ -11,6 +11,7 @@ Rather than functioning as a conventional CRUD application, RouteNetLK models re
  **Project Repositories**:
   - [RouteNetLK Client Application (Angular 19)](https://github.com/Ashan-Dissanayake/RouteNetLKClientApplication)
   - [RouteNetLK Server Application (Spring Boot 3)](https://github.com/Ashan-Dissanayake/RouteNetLKServerApplication)
+  - [RouteNetLK Infrastructure (Terraform, Docker, AWS)](https://github.com/Ashan-Dissanayake/RouteNetLK)
 ---
 
 ## 📑 Table of Contents
@@ -156,7 +157,7 @@ RouteNetLK is maintained using **separate repositories for application and infra
 | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | --------------------------------- |
 | [**RouteNetLK Client Application**](https://github.com/Ashan-Dissanayake/RouteNetLKClientApplication) | Frontend application and user interface                                        | Angular 19, TypeScript            |
 | [**RouteNetLK Server Application**](https://github.com/Ashan-Dissanayake/RouteNetLKServerApplication) | Backend APIs and business logic                                                | Spring Boot 3, Java 17            |
-| **RouteNetLK Infrastructure**                                                                         | Cloud infrastructure, database resources, containers and deployment automation | Terraform, Docker, GitHub Actions |
+| [**RouteNetLK Infrastructure**](https://github.com/Ashan-Dissanayake/RouteNetLK)                       | Cloud infrastructure, database resources, containers and deployment automation | Terraform, Docker, GitHub Actions |
 
 ### Repository Relationship
 
@@ -323,6 +324,7 @@ The Angular client uses facade-oriented services to separate UI components from 
 ### Metadata-Driven UI
 
 Reusable metadata definitions are used to support dynamic forms, tables, lookup fields, and validation behavior across the client application.
+
 ---
 
 # 🔐 Security Overview
@@ -359,38 +361,22 @@ Branch-level data isolation and persistence filtering provide an additional secu
 
 # ☁️ Infrastructure & Deployment
 
-RouteNetLK uses **Infrastructure as Code and containerized deployment**.
+RouteNetLK uses **Infrastructure as Code and containerized deployment** on AWS (`ap-south-1`, Mumbai). All cloud resources are provisioned declaratively with Terraform.
 
-```text
-                         AWS
-                          │
-                    ┌─────┴─────┐
-                    │    VPC    │
-                    └─────┬─────┘
-                          │
-                         EC2
-                          │
-                    Docker Engine
-                          │
-             ┌────────────┼────────────┐
-             │            │            │
-             ▼            ▼            ▼
-          Frontend     Backend      Database
-           Nginx      Spring Boot     MySQL
-```
+<p align="center">
+  <img src="docs/images/routnetlk-architecture.png" alt="RouteNetLK AWS Infrastructure Architecture" width="80%" />
+</p>
 
 ### Infrastructure Technologies
 
-* AWS VPC
-* AWS EC2
+* AWS VPC, Public Subnet, Route Table, Internet Gateway
+* AWS EC2 (Ubuntu 22.04, `t3.micro`)
 * Security Groups
-* Internet Gateway
-* Ubuntu Server
-* Docker
-* Docker Compose
+* AWS IAM (EC2 instance role and instance profile)
+* AWS Systems Manager (Session Manager, State Manager, Parameter Store)
+* Amazon CloudWatch (metrics, alarms, dashboard)
+* Docker and Docker Compose
 * Terraform
-
-Terraform is used to declaratively provision and manage cloud infrastructure.
 
 ### Containerization
 
@@ -405,7 +391,22 @@ The deployment architecture consists of:
 
 The backend communicates with the database through the internal Docker network rather than exposing the database directly to the public network.
 
-> Detailed infrastructure configuration, Terraform modules, database scripts and deployment instructions are maintained in the Infrastructure repository.
+### Network & Access Control
+
+* Inbound traffic from the internet is limited to **HTTP (80)** and **HTTPS (443)**.
+* The MySQL port (3306) is never exposed publicly. It is reachable only inside the Docker network.
+* Administrative access uses **AWS Systems Manager Session Manager**. No SSH port is open, and no SSH key is required for server access.
+* The EC2 instance uses an IAM instance profile with the `AmazonSSMManagedInstanceCore` and `CloudWatchAgentServerPolicy` managed policies.
+
+### Monitoring
+
+* The **CloudWatch Agent** is installed on the instance by an SSM State Manager association.
+* A second association configures the agent using a JSON configuration stored in **SSM Parameter Store**.
+* **CloudWatch** collects CPU, memory and root-disk utilization.
+* Three alarms trigger when CPU, memory or disk utilization exceeds 80%.
+* A CloudWatch dashboard visualizes all three metrics.
+
+> Detailed infrastructure configuration, Terraform code, database scripts and deployment instructions are maintained in the [Infrastructure repository](https://github.com/Ashan-Dissanayake/RouteNetLK).
 
 ---
 
@@ -475,7 +476,9 @@ The CI/CD implementation includes automated:
 | **Integration Testing**     | Testcontainers              | Database integration testing      |
 | **Containerization**        | Docker / Docker Compose     | Application orchestration         |
 | **Reverse Proxy**           | Nginx                       | Web serving and reverse proxy     |
-| **Cloud**                   | AWS EC2                     | Application hosting               |
+| **Cloud**                   | AWS (EC2, VPC, IAM)         | Application hosting and networking |
+| **Server Management**       | AWS Systems Manager         | Secure access, agent management, configuration |
+| **Monitoring**              | Amazon CloudWatch           | Metrics, alarms and dashboard     |
 | **IaC**                     | Terraform                   | Cloud infrastructure provisioning |
 | **CI/CD**                   | GitHub Actions              | Automated delivery                |
 
@@ -492,11 +495,12 @@ git clone https://github.com/Ashan-Dissanayake/RouteNetLKClientApplication.git
 
 git clone https://github.com/Ashan-Dissanayake/RouteNetLKServerApplication.git
 
+git clone https://github.com/Ashan-Dissanayake/RouteNetLK.git
 ```
 
 ### 2. Start the Infrastructure / Local Environment
 
-Follow the instructions in the Infrastructure repository for:
+Follow the instructions in the [Infrastructure repository](https://github.com/Ashan-Dissanayake/RouteNetLK) for:
 
 * Environment variables
 * Database initialization
@@ -568,7 +572,7 @@ Contains:
 
 ### Infrastructure
 
-**RouteNetLK Infrastructure**
+[**RouteNetLK Infrastructure**](https://github.com/Ashan-Dissanayake/RouteNetLK)
 
 Contains:
 
@@ -616,6 +620,7 @@ The project focuses on applying software engineering principles to a complex rea
 
 * [RouteNetLK Client Application](https://github.com/Ashan-Dissanayake/RouteNetLKClientApplication)
 * [RouteNetLK Server Application](https://github.com/Ashan-Dissanayake/RouteNetLKServerApplication)
+* [RouteNetLK Infrastructure](https://github.com/Ashan-Dissanayake/RouteNetLK)
 
 ---
 
