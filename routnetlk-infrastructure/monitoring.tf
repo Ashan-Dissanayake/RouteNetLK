@@ -1,12 +1,12 @@
 resource "aws_cloudwatch_metric_alarm" "high_cpu" {
-  alarm_name          = "routnetlk-ec2-high-cpu"
-  alarm_description   = "Triggers when EC2 CPU utilization exceeds 80%"
+  alarm_name        = "routnetlk-ec2-high-cpu"
+  alarm_description = "Triggers when EC2 CPU utilization exceeds 80%"
 
-  namespace           = "AWS/EC2"
-  metric_name         = "CPUUtilization"
-  statistic           = "Average"
-  period              = 300
-  evaluation_periods  = 1
+  namespace          = "AWS/EC2"
+  metric_name        = "CPUUtilization"
+  statistic          = "Average"
+  period             = 300
+  evaluation_periods = 1
 
   threshold           = 80
   comparison_operator = "GreaterThanThreshold"
@@ -43,9 +43,9 @@ resource "aws_cloudwatch_metric_alarm" "high_disk" {
   alarm_description = "Triggers when root disk utilization exceeds 80%"
 
   namespace          = "RouteNetLK/EC2"
-  metric_name       = "disk_used_percent"
-  statistic         = "Average"
-  period            = 300
+  metric_name        = "disk_used_percent"
+  statistic          = "Average"
+  period             = 300
   evaluation_periods = 1
 
   threshold           = 80
@@ -86,9 +86,9 @@ resource "aws_cloudwatch_dashboard" "routnetlk" {
             ]
           ]
 
-          period = 300
-          stat   = "Average"
-          view   = "timeSeries"
+          period  = 300
+          stat    = "Average"
+          view    = "timeSeries"
           stacked = false
         }
       },
@@ -113,9 +113,9 @@ resource "aws_cloudwatch_dashboard" "routnetlk" {
             ]
           ]
 
-          period = 300
-          stat   = "Average"
-          view   = "timeSeries"
+          period  = 300
+          stat    = "Average"
+          view    = "timeSeries"
           stacked = false
         }
       },
@@ -146,9 +146,9 @@ resource "aws_cloudwatch_dashboard" "routnetlk" {
             ]
           ]
 
-          period = 300
-          stat   = "Average"
-          view   = "timeSeries"
+          period  = 300
+          stat    = "Average"
+          view    = "timeSeries"
           stacked = false
         }
       }

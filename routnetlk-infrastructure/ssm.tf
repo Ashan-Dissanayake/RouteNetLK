@@ -12,34 +12,34 @@ resource "aws_ssm_parameter" "cloudwatch_agent_config" {
     }
 
     metrics = {
-  namespace = "RouteNetLK/EC2"
+      namespace = "RouteNetLK/EC2"
 
-  append_dimensions = {
-    InstanceId = "$${aws:InstanceId}"
-  }
+      append_dimensions = {
+        InstanceId = "$${aws:InstanceId}"
+      }
 
-  metrics_collected = {
-    mem = {
-      measurement = [
-        "mem_used_percent"
-      ]
+      metrics_collected = {
+        mem = {
+          measurement = [
+            "mem_used_percent"
+          ]
 
-      metrics_collection_interval = 300
+          metrics_collection_interval = 300
+        }
+
+        disk = {
+          measurement = [
+            "used_percent"
+          ]
+
+          resources = [
+            "/"
+          ]
+
+          metrics_collection_interval = 300
+        }
+      }
     }
-
-    disk = {
-      measurement = [
-        "used_percent"
-      ]
-
-      resources = [
-        "/"
-      ]
-
-      metrics_collection_interval = 300
-    }
-  }
-}
   })
 
   tags = {
